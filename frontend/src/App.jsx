@@ -23,7 +23,7 @@ import StudentDashboard from './pages/student/DashboardPage';
 import StudentGradesPage from './pages/student/GradesPage';
 import BehaviorPage from './pages/student/BehaviorPage';
 import PredictionPage from './pages/student/PredictionPage';
-
+import ImprovementPage from './pages/student/ImprovementPage';
 // Lecturer pages
 import LecturerDashboard from './pages/lecturer/DashboardPage';
 
@@ -55,7 +55,6 @@ function App() {
               <Route path="semesters" element={<SemestersPage />} />
               <Route path="grades" element={<GradesPage />} />
               <Route path="backup" element={<BackupPage />} />
-              <Route path="settings" element={<div>Settings - Coming soon</div>} />
             </Route>
 
             {/* Student routes */}
@@ -73,7 +72,7 @@ function App() {
               <Route path="grades" element={<StudentGradesPage />} />
               <Route path="behavior" element={<BehaviorPage />} />
               <Route path="prediction" element={<PredictionPage />} />
-              <Route path="improvement" element={<div>Improvement Suggestions - Coming soon</div>} />
+              <Route path="improvement" element={<ImprovementPage />} />
               <Route path="goal-seek" element={<div>Goal Seek - Coming soon</div>} />
             </Route>
 

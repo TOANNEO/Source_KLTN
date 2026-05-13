@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(copy:*)",
+      "Bash(npm install)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJzdHVkZW50QHRsdS5lZHUudm4iLCJyb2xlIjoic3R1ZGVudCIsImlhdCI6MTc3ODI5NzIxNCwiZXhwIjoxNzc4MzgzNjE0fQ.iJ9b_WXf-hZv1Cbk1cim7wfQ5HZXc_ldKPnPvfLUtwE\")",
+      "Bash(where:*)",
+      "Bash(npm start)",
+      "Bash(timeout 5 type \"C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--KH-A-LU-N-T-T-NGHI-P-25-26-Source-code\\\\tasks\\\\b0b959f.output\")",
+      "Bash(npm run dev)"
+    ]
+  }
+}

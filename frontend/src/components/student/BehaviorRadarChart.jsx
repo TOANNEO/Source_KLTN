@@ -19,21 +19,31 @@ const BehaviorRadarChart = ({ behaviorData }) => {
   }
 
   // Normalize data to 0-100 scale for radar chart
+     function getSeepScore(hours) {
+            let sleepScore = 0;
+
+            if (hours >= 7 && hours <= 8) sleepScore = 100;
+            else if (hours >= 6 && hours < 7) sleepScore = 80;
+            else if (hours > 8 && hours <= 9) sleepScore = 80;
+            else if (hours >= 5 && hours < 6) sleepScore = 60;
+            else sleepScore = 40;
+            return sleepScore;
+     }
   const radarData = [
     {
       subject: 'Giờ học',
-      value: Math.min((behaviorData.study_hours_per_day / 16) * 100, 100),
+      value: Math.min((behaviorData.study_hours_per_day / 12) * 100, 100),
       fullMark: 100,
       actual: `${behaviorData.study_hours_per_day}h`
     },
     {
       subject: 'Giờ ngủ',
-      value: Math.min((behaviorData.sleep_hours_per_day / 12) * 100, 100),
+      value: getSeepScore(behaviorData.sleep_hours_per_day),
       fullMark: 100,
       actual: `${behaviorData.sleep_hours_per_day}h`
     },
     {
-      subject: 'Điểm danh',
+      subject: 'Tỉ lệ tham gia lớp học',
       value: behaviorData.class_attendance || 0,
       fullMark: 100,
       actual: `${behaviorData.class_attendance}%`
@@ -51,6 +61,25 @@ const BehaviorRadarChart = ({ behaviorData }) => {
       fullMark: 100,
       actual: `${behaviorData.screen_time_hours}h`,
       inverted: true
+    },
+    {
+      subject: 'Căng thẳng',
+      value: Math.max(100 - ((behaviorData.mental_stress_level / 10) * 100), 0),
+      fullMark: 100,
+      actual: `${behaviorData.mental_stress_level}/9`,
+      inverted: true
+    },
+    {
+      subject: 'Ngoại khóa',
+      value: Math.min((behaviorData.extracurricular_hours_per_week / 8) * 100, 100),
+      fullMark: 100,
+      actual: `${behaviorData.extracurricular_hours_per_week}/10`
+    },
+    {
+      subject: 'Thể dục',
+      value: Math.min((behaviorData.exercise_hours_per_week / 10) * 100, 100),
+      fullMark: 100,
+      actual: `${behaviorData.exercise_hours_per_week}h/tuần`
     }
   ];
 
@@ -78,7 +107,7 @@ const BehaviorRadarChart = ({ behaviorData }) => {
         <h3 className="text-lg font-semibold text-gray-700">Chỉ số hành vi</h3>
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-          <span>5 chỉ số chính</span>
+          <span>Các chỉ số hành vi </span>
         </div>
       </div>
 
@@ -123,7 +152,7 @@ const BehaviorRadarChart = ({ behaviorData }) => {
             </p>
           </div>
           <div className="bg-green-50 p-3 rounded-lg">
-            <p className="text-xs text-gray-600 mb-1">Điểm danh</p>
+            <p className="text-xs text-gray-600 mb-1">Tỉ lệ tham gia lớp học</p>
             <p className="text-lg font-bold text-green-600">
               {behaviorData.class_attendance}%
             </p>
@@ -133,7 +162,7 @@ const BehaviorRadarChart = ({ behaviorData }) => {
             <p className="text-lg font-bold text-orange-600">
               {behaviorData.mental_stress_level}/9
             </p>
-          </div>
+          </div>      
         </div>
       </div>
     </div>

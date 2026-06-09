@@ -22,11 +22,19 @@ const Student = sequelize.define('Student', {
     allowNull: false,
     comment: 'Mã sinh viên, VD: A46644'
   },
-  class_name: {
-    type: DataTypes.STRING(50),
+  class_id: {
+    type: DataTypes.INTEGER,
     allowNull: true,
-    comment: 'Tên lớp, VD: TT35CL01'
+    references: {
+      model: 'classes',
+      key: 'id'
+    }
   },
+  // class_name: {
+  //   type: DataTypes.STRING(50),
+  //   allowNull: true,
+  //   comment: 'Tên lớp, VD: TT35CL01'
+  // },
   major: {
     type: DataTypes.STRING(255),
     allowNull: true,

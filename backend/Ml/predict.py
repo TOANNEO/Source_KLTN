@@ -5,31 +5,31 @@ ML Prediction Script
 Receives JSON input via stdin, returns JSON output via stdout
 Model trained on GPA 4.0 scale, converts to 10.0 scale for display
 """
-
 import sys
 import json
 import pickle
 import numpy as np
 import os
+import shap
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 # Feature names in exact order used during training
 FEATURE_NAMES = [
-    'final_exam_score',
-    'class_attendance_percent',
     'study_hours_per_day',
-    'assignment_score',
+    'class_attendance_percent',
     'sleep_hours',
+    'mental_stress_level',
     'social_media_hours',
     'screen_time_hours',
+    'extracurricular_hours_per_week',
+    'exercise_hours_per_week'
 ]
 
 def load_models():
     """Load trained ML models"""
     try:
-        scaler_path = os.path.join(BASE_DIR, 'gpa_scaler.pkl')
-        model_path = os.path.join(BASE_DIR, 'gpa_model.pkl')
+        scaler_path = os.path.join(BASE_DIR, 'scaler_intervention.pkl')
+        model_path = os.path.join(BASE_DIR, 'lr_model_intervention.pkl')
 
         with open(scaler_path, 'rb') as f:
             scaler = pickle.load(f)
@@ -64,31 +64,59 @@ def gpa4_to_gpa10(gpa4):
 
 def classify_risk(gpa10):
     """Classify risk level based on GPA 10.0 scale"""
-    if gpa10 >= 6.0:
+    if gpa10 >= 7.0:
         return 'safe'
     elif gpa10 >= 5.0:
         return 'warning'
     else:
         return 'danger'
 
-def get_feature_importance(model):
-    """Extract feature importance from model"""
-    importance = {}
+def get_feature_importance(model, scaled_features):
+    # """Extract feature importance from model"""
+    # importance = {}
 
-    if hasattr(model, 'feature_importances_'):
-        # Tree-based models
-        for name, imp in zip(FEATURE_NAMES, model.feature_importances_):
-            importance[name] = round(float(imp), 4)
-    elif hasattr(model, 'coef_'):
-        # Linear models
-        total = sum(abs(c) for c in model.coef_.flatten())
-        for name, coef in zip(FEATURE_NAMES, model.coef_.flatten()):
-            importance[name] = round(abs(float(coef)) / total, 4) if total > 0 else 0
-    else:
-        # Default equal importance
+    # if hasattr(model, 'feature_importances_'):
+    #     # Tree-based models
+    #     for name, imp in zip(FEATURE_NAMES, model.feature_importances_):
+    #         importance[name] = round(float(imp), 4)
+    # elif hasattr(model, 'coef_'):
+    #     # Linear models
+    #     total = sum(abs(c) for c in model.coef_.flatten())
+    #     for name, coef in zip(FEATURE_NAMES, model.coef_.flatten()):
+    #         importance[name] = round(abs(float(coef)) / total, 4) if total > 0 else 0
+    # else:
+    #     # Default equal importance
+    #     for name in FEATURE_NAMES:
+    #         importance[name] = round(1.0 / len(FEATURE_NAMES), 4)
+
+    # return importance
+    """
+    Sử dụng SHAP để tính toán đóng góp cục bộ (Local Impact) cho riêng sinh viên này.
+    Trả về giá trị điểm số đóng góp (+ hoặc -) vào GPA hệ 4.0.
+    """
+    importance = {}
+    try:
+        # Vì dữ liệu đầu vào đã được chuẩn hóa (scaled), điểm trung bình của toàn khóa
+        # sẽ tương ứng với một mảng các số 0. Chúng ta dùng nó làm dữ liệu nền (background data).
+        background = np.zeros((1, len(FEATURE_NAMES)))
+        
+        # Sử dụng LinearExplainer tối ưu riêng cho mô hình Tuyến tính (Linear Regression)
+        explainer = shap.LinearExplainer(model, background)
+        
+        # Tính toán SHAP values cho dòng dữ liệu của sinh viên hiện tại
+        shap_values = explainer.shap_values(scaled_features)
+        
+        # Lấy dòng đầu tiên [0] vì hệ thống chỉ nhận input của 1 sinh viên tại một thời điểm
+        student_shap = shap_values[0]
+        
+        for name, shap_val in zip(FEATURE_NAMES, student_shap):
+            importance[name] = round(float(shap_val), 4)
+            
+    except Exception as e:
+        # Cơ chế dự phòng nếu xảy ra lỗi thư viện: Chia đều độ quan trọng
         for name in FEATURE_NAMES:
             importance[name] = round(1.0 / len(FEATURE_NAMES), 4)
-
+            
     return importance
 
 def predict(input_data):
@@ -113,7 +141,7 @@ def predict(input_data):
     risk_label = classify_risk(predicted_gpa10)
 
     # Get feature importance
-    feature_importance = get_feature_importance(model)
+    feature_importance = get_feature_importance(model, scaled_features)
 
     return {
         'predicted_gpa4': predicted_gpa4,      # Save to DB (4.0 scale)

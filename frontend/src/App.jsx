@@ -10,13 +10,14 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 
 // Admin pages
 import AdminDashboard from './pages/admin/DashboardPage';
-import UsersPage from './pages/admin/UsersPage';
 import StudentsPage from './pages/admin/StudentsPage';
 import LecturersPage from './pages/admin/LecturersPage';
 import CoursesPage from './pages/admin/CoursesPage';
 import SemestersPage from './pages/admin/SemestersPage';
 import GradesPage from './pages/admin/GradesPage';
 import BackupPage from './pages/admin/BackupPage';
+import ClassesPage from './pages/admin/ClassesPage';
+import ClassDetailPage from './pages/admin/ClassDetailPage';
 
 // Student pages
 import StudentDashboard from './pages/student/DashboardPage';
@@ -24,8 +25,15 @@ import StudentGradesPage from './pages/student/GradesPage';
 import BehaviorPage from './pages/student/BehaviorPage';
 import PredictionPage from './pages/student/PredictionPage';
 import ImprovementPage from './pages/student/ImprovementPage';
+import PredictionDashboard from './pages/student/ImprovementDashboard';
 // Lecturer pages
 import LecturerDashboard from './pages/lecturer/DashboardPage';
+import LecturerClassesPage from './pages/lecturer/LecturerClassesPage';
+import LecturerClassDetailPage from './pages/lecturer/LecturerClassDetailPage';
+import LecturerStudentProfilePage from './pages/lecturer/LecturerStudentProfilePage';
+import LecturerInterventionsPage from './pages/lecturer/LecturerInterventionsPage';
+import LecturerAtRiskPage from './pages/lecturer/LecturerAtRiskPage';
+import LecturerReportPage from './pages/lecturer/LecturerReportPage';
 
 function App() {
   return (
@@ -48,13 +56,14 @@ function App() {
             >
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="users" element={<UsersPage />} />
               <Route path="students" element={<StudentsPage />} />
               <Route path="lecturers" element={<LecturersPage />} />
               <Route path="courses" element={<CoursesPage />} />
               <Route path="semesters" element={<SemestersPage />} />
               <Route path="grades" element={<GradesPage />} />
               <Route path="backup" element={<BackupPage />} />
+              <Route path="classes" element={<ClassesPage />} />
+              <Route path="classes/:id" element={<ClassDetailPage />} />
             </Route>
 
             {/* Student routes */}
@@ -68,12 +77,11 @@ function App() {
             >
               <Route index element={<Navigate to="/student/dashboard" replace />} />
               <Route path="dashboard" element={<StudentDashboard />} />
-              <Route path="profile" element={<div>Profile - Coming soon</div>} />
               <Route path="grades" element={<StudentGradesPage />} />
               <Route path="behavior" element={<BehaviorPage />} />
               <Route path="prediction" element={<PredictionPage />} />
               <Route path="improvement" element={<ImprovementPage />} />
-              <Route path="goal-seek" element={<div>Goal Seek - Coming soon</div>} />
+              <Route path="prediction-dashboard" element={<PredictionDashboard />} />
             </Route>
 
             {/* Lecturer routes */}
@@ -86,12 +94,14 @@ function App() {
               }
             >
               <Route index element={<Navigate to="/lecturer/dashboard" replace />} />
-              <Route path="dashboard" element={<LecturerDashboard />} />
-              <Route path="at-risk-students" element={<div>At-Risk Students - Coming soon</div>} />
-              <Route path="improvement-report" element={<div>Improvement Report - Coming soon</div>} />
-              <Route path="students" element={<div>Students List - Coming soon</div>} />
-              <Route path="students/:id" element={<div>Student Detail - Coming soon</div>} />
-              <Route path="reports" element={<div>Export Reports - Coming soon</div>} />
+              <Route path="dashboard"         element={<LecturerDashboard />} />
+              <Route path="classes"           element={<LecturerClassesPage />} />
+              <Route path="classes/:id"       element={<LecturerClassDetailPage />} />
+              <Route path="at-risk-students"  element={<LecturerAtRiskPage />} />
+              <Route path="interventions"     element={<LecturerInterventionsPage />} />
+              <Route path="report"            element={<LecturerReportPage />} />
+              <Route path="students/:id/profile" element={<LecturerStudentProfilePage />} />
+              <Route path="students" element={<div className="p-8 text-center text-slate-400">Danh sách sinh viên</div>} />
             </Route>
 
             {/* Default redirect based on role */}

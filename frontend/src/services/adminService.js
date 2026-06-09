@@ -1,10 +1,17 @@
 import api from './api';
 
 /**
- * Get admin dashboard data
+ * Get admin dashboard data (account stats + grade trends)
  */
 export const getDashboard = async () => {
   return await api.get('/admin/dashboard');
+};
+
+/**
+ * Get recent login list (for real-time panel)
+ */
+export const getRecentLogins = async (limit = 20) => {
+  return await api.get('/admin/dashboard/recent-logins', { params: { limit } });
 };
 
 /**
@@ -53,6 +60,14 @@ export const deleteStudent = async (id) => {
   return api.delete(`/admin/students/${id}`);
 };
 
+export const toggleStudentActive = async (id) => {
+  return api.put(`/admin/students/${id}/toggle-active`);
+};
+
+export const resetStudentPassword = async (id, new_password) => {
+  return api.put(`/admin/students/${id}/reset-password`, { new_password });
+};
+
 // Lecturers Management
 export const getLecturers = async (filters = {}) => {
   const params = new URLSearchParams(filters).toString();
@@ -69,6 +84,14 @@ export const updateLecturer = async (id, lecturerData) => {
 
 export const deleteLecturer = async (id) => {
   return api.delete(`/admin/lecturers/${id}`);
+};
+
+export const toggleLecturerActive = async (id) => {
+  return api.put(`/admin/lecturers/${id}/toggle-active`);
+};
+
+export const resetLecturerPassword = async (id, new_password) => {
+  return api.put(`/admin/lecturers/${id}/reset-password`, { new_password });
 };
 
 // Courses Management
@@ -172,3 +195,38 @@ export const exportGradesToPDF = async (filters = {}) => {
   return response;
 };
 
+// ==================== DEPARTMENTS ====================
+export const getDepartments = async () => {
+  return api.get('/admin/departments');
+};
+
+// ==================== CLASSES MANAGEMENT ====================
+export const getClasses = async (params = {}) =>
+  api.get('/admin/classes', { params });
+
+export const getClassById = async (id) =>
+  api.get(`/admin/classes/${id}`);
+
+export const createClass = async (data) =>
+  api.post('/admin/classes', data);
+
+export const updateClass = async (id, data) =>
+  api.put(`/admin/classes/${id}`, data);
+
+export const deleteClass = async (id) =>
+  api.delete(`/admin/classes/${id}`);
+
+export const assignHomeroom = async (classId, data) =>
+  api.put(`/admin/classes/${classId}/homeroom`, data);
+
+export const getClassStudents = async (classId) =>
+  api.get(`/admin/classes/${classId}/students`);
+
+export const getUnassignedStudents = async (search = '') =>
+  api.get('/admin/classes/students/unassigned', { params: { search } });
+
+export const addStudentsToClass = async (classId, student_ids) =>
+  api.post(`/admin/classes/${classId}/students`, { student_ids });
+
+export const removeStudentFromClass = async (classId, studentId) =>
+  api.delete(`/admin/classes/${classId}/students/${studentId}`);

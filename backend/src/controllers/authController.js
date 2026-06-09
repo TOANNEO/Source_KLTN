@@ -1,4 +1,5 @@
 const authService = require('../services/authService');
+const adminService = require('../services/adminService');
 
 /**
  * POST /api/v1/auth/login
@@ -19,6 +20,9 @@ const login = async (req, res) => {
     // Login
     const result = await authService.login(email, password);
 
+    // Track last login time (fire-and-forget)
+    adminService.updateLastLogin(result.user.id).catch(() => {});
+
     res.json({
       success: true,
       data: result,
@@ -26,7 +30,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(401).json({
+    res.status(403).json({
       success: false,
       message: error.message || 'Đăng nhập thất bại'
     });

@@ -6,6 +6,7 @@ import {
   UserCircleIcon,
   LightBulbIcon,
   AcademicCapIcon,
+  EyeDropperIcon,
   ArrowTrendingUpIcon
 } from '@heroicons/react/24/outline';
 
@@ -14,12 +15,12 @@ const StudentSidebar = () => {
 
   const menuItems = [
     { path: '/student/dashboard', icon: HomeIcon, label: 'Dashboard' },
-    { path: '/student/profile', icon: UserCircleIcon, label: 'Hồ sơ học tập' },
     { path: '/student/grades', icon: ClipboardDocumentListIcon, label: 'Bảng điểm' },
     { path: '/student/behavior', icon: ChartBarIcon, label: 'Chỉ số hành vi' },
     { path: '/student/prediction', icon: LightBulbIcon, label: 'Dự báo kết quả' },
-    { path: '/student/improvement', icon: ArrowTrendingUpIcon, label: 'Gợi ý cải thiện' },
-    { path: '/student/goal-seek', icon: AcademicCapIcon, label: 'Tính điểm mục tiêu' }
+    { path: '/student/prediction-dashboard', icon: EyeDropperIcon, label: 'Gợi ý cải thiện học tập' },
+    // { path: '/student/improvement', icon: ArrowTrendingUpIcon, label: "Học cải thiện" }
+    
   ];
 
   const isActive = (path) => location.pathname === path;

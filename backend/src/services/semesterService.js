@@ -6,7 +6,7 @@ const { Op } = require('sequelize');
  */
 const getAllSemesters = async () => {
   return await Semester.findAll({
-    order: [['academic_year', 'DESC'], ['name', 'DESC']]
+    order: [['start_date', 'DESC'], ['name', 'DESC']]
   });
 };
 

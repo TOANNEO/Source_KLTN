@@ -47,13 +47,25 @@ const validateBehaviorData = (data) => {
       errors.push('Mức độ căng thẳng phải từ 0-9');
     }
   }
+  // extracurricular_hours_per_week: 0-24
+  if (data.extracurricular_hours_per_week !== undefined) {
+    if (data.extracurricular_hours_per_week < 0 || data.extracurricular_hours_per_week > 24) {
+      errors.push('Tỉ lệ tham gia hoạt động ngoại khóa phải từ 0-24 giờ/tuần');
+    }
+  }
+  // exercise_hours_per_week: 0-14
+  if (data.exercise_hours_per_week !== undefined) {
+    if (data.exercise_hours_per_week < 0 || data.exercise_hours_per_week > 14) {
+      errors.push('Số giờ tập thể dục mỗi tuần phải từ 0-14 giờ');
+    }
+  }
 
   return errors;
 };
 
 /**
  * Get behavior record for current semester
- * UC15: Xem chỉ số hành vi học kỳ hiện tại
+  Xem chỉ số hành vi học kỳ hiện tại
  */
 const getCurrentBehavior = async (userId) => {
   const student = await Student.findOne({ where: { user_id: userId } });
@@ -110,17 +122,18 @@ const getAllBehaviors = async (userId) => {
 
 /**
  * Create or update behavior record
- * UC15: Nhập theo học kỳ, lưu có timestamp
+    Nhập theo học kỳ, lưu có timestamp
  */
 const createOrUpdateBehavior = async (userId, data) => {
   const {
-    semester_id,
     study_hours_per_day,
     sleep_hours_per_day,
     class_attendance,
     social_media_hours,
     screen_time_hours,
-    mental_stress_level
+    mental_stress_level,
+    extracurricular_hours_per_week,
+    exercise_hours_per_week
   } = data;
 
   // Validate ranges
@@ -136,10 +149,15 @@ const createOrUpdateBehavior = async (userId, data) => {
   }
 
   // Validate semester
-  const semester = await Semester.findByPk(semester_id);
-  if (!semester) {
-    throw new Error('Không tìm thấy học kỳ');
-  }
+  // Get current semester
+const currentSemester = await Semester.findOne({
+  where: { is_current: 1 }
+});
+
+if (!currentSemester) {
+  throw new Error('Không có học kỳ hiện hành');
+}
+const semester_id = currentSemester.id;
 
   // Check if behavior record exists
   const existingBehavior = await BehaviorRecord.findOne({
@@ -157,9 +175,11 @@ const createOrUpdateBehavior = async (userId, data) => {
       study_hours_per_day,
       sleep_hours_per_day,
       class_attendance,
-      social_media_hours: social_media_hours || 0,
-      screen_time_hours: screen_time_hours || 0,
+      social_media_hours,
+      screen_time_hours,
       mental_stress_level,
+      extracurricular_hours_per_week,
+      exercise_hours_per_week,
       recorded_at: new Date()
     });
   } else {
@@ -170,9 +190,11 @@ const createOrUpdateBehavior = async (userId, data) => {
       study_hours_per_day,
       sleep_hours_per_day,
       class_attendance,
-      social_media_hours: social_media_hours || 0,
-      screen_time_hours: screen_time_hours || 0,
+      social_media_hours,
+      screen_time_hours,
       mental_stress_level,
+      extracurricular_hours_per_week,
+      exercise_hours_per_week,
       recorded_at: new Date()
     });
   }

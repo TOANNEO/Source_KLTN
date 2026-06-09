@@ -9,7 +9,8 @@ const lecturerService = require('../services/lecturerService');
 const getDashboard = async (req, res) => {
   try {
     // Get current semester at-risk students count
-    const atRiskStudents = await lecturerService.getAtRiskStudents({});
+    const atRiskStudents = await lecturerService.getAtRiskStudents(req.user.id,
+{});
 
     const dashboard = {
       total_at_risk: atRiskStudents.length,
@@ -34,7 +35,7 @@ const getDashboard = async (req, res) => {
   }
 };
 
-// ==================== UC22: AT-RISK STUDENTS ====================
+// ====================AT-RISK STUDENTS ====================
 
 /**
  * GET /api/v1/lecturer/at-risk-students
@@ -44,18 +45,17 @@ const getAtRiskStudents = async (req, res) => {
   try {
     const filters = {
       semester_id: req.query.semester_id,
+      class_id: req.query.class_id,
+      risk_label: req.query.risk_label,
       predicted_gpa_threshold: req.query.predicted_gpa_threshold,
       stress_level: req.query.stress_level
     };
 
-    const students = await lecturerService.getAtRiskStudents(filters);
+    const students = await lecturerService.getAtRiskStudents(req.user.id,filters);
 
     res.json({
       success: true,
-      data: {
-        total: students.length,
-        students
-      },
+      data: students,
       message: students.length === 0
         ? 'Không có sinh viên nguy cơ theo tiêu chí lọc'
         : `Tìm thấy ${students.length} sinh viên nguy cơ`

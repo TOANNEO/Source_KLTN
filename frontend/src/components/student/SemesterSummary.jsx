@@ -2,6 +2,7 @@ import { calculateSemesterGPA } from '../../utils/gradeUtils';
 
 const SemesterSummary = ({ grades, cumulativeGPA, cumulativeCredits }) => {
   const semesterStats = calculateSemesterGPA(grades);
+  console.log('SemesterSummary - semesterStats:', semesterStats);
 
   return (
     <div className="bg-gray-50 rounded-lg p-6 mt-4 border border-gray-200">

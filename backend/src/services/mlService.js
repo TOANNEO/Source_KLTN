@@ -75,49 +75,36 @@ const runPrediction = async (inputData) => {
   });
 };
 
-/**
- * Prepare input data for ML model
- * Maps database fields to ML model features
- * const prepareMLInput = (behaviorData, gradeData = {}) => {
-  return {
-    final_exam_score: gradeData.middle_exam_score || 0,
-    class_attendance_percent: behaviorData.class_attendance || 0,
-    study_hours_per_day: behaviorData.study_hours_per_day || 0,
-    assignment_score: gradeData.assignment_score || 0,
-    sleep_hours: behaviorData.sleep_hours_per_day || 7,
-    social_media_hours: behaviorData.social_media_hours || 0,
-    screen_time_hours: behaviorData.screen_time_hours || 0,
-  };
-};
- */
+
 
 const prepareMLInput = (behaviorData, gradeData = {}) => {
   // Convert score scale if model trained on 100-scale data
-  const finalExamScore =
-    (gradeData.middle_exam_score ?? 0) * 10;
-
-  const assignmentScore =
-    (gradeData.assignment_score ?? 0) * 10;
+ 
 
   const input = {
-    final_exam_score: finalExamScore,
-
-    class_attendance_percent:
-      behaviorData.class_attendance ?? 0,
-
     study_hours_per_day:
       behaviorData.study_hours_per_day ?? 0,
 
-    assignment_score: assignmentScore,
+    class_attendance_percent:
+      behaviorData.class_attendance ?? 0,
 
     sleep_hours:
       behaviorData.sleep_hours_per_day ?? 0,
 
     social_media_hours:
       behaviorData.social_media_hours ?? 0,
+    
+    mental_stress_level:
+      behaviorData.mental_stress_level ?? 0,
 
     screen_time_hours:
       behaviorData.screen_time_hours ?? 0,
+
+    extracurricular_hours_per_week:
+      behaviorData.extracurricular_hours_per_week ?? 0,
+
+    exercise_hours_per_week:
+      behaviorData.exercise_hours_per_week ?? 0
   };
 
   console.log('=== ML INPUT DATA ===');

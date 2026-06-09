@@ -3,6 +3,8 @@ const router = express.Router();
 const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/validate');
 const studentController = require('../controllers/studentController');
+const classController = require('../controllers/classController');
+const interventionController = require('../controllers/interventionController');
 const { authenticateToken } = require('../middleware/authenticate');
 const { requireStudent } = require('../middleware/authorize');
 
@@ -52,8 +54,6 @@ router.get('/behavior', studentController.getBehaviorRecords);
 // UC15: Tạo/cập nhật chỉ số hành vi
 router.post('/behavior',
   [
-    body('semester_id')
-      .isInt().withMessage('ID học kỳ không hợp lệ'),
     body('study_hours_per_day')
       .isFloat({ min: 0, max: 16 }).withMessage('Số giờ tự học phải từ 0-16 giờ/ngày'),
     body('sleep_hours_per_day')
@@ -68,6 +68,11 @@ router.post('/behavior',
       .isFloat({ min: 0, max: 24 }).withMessage('Thời gian sử dụng màn hình phải từ 0-24 giờ/ngày'),
     body('mental_stress_level')
       .isInt({ min: 0, max: 9 }).withMessage('Mức độ căng thẳng phải từ 0-9'),
+    body('extracurricular_hours_per_week')
+      .isFloat({ min: 0, max: 24 }).withMessage('Tỉ lệ tham gia hoạt động ngoại khóa phải từ 0-24 giờ/tuần'),
+    body('exercise_hours_per_week')
+      .optional()
+      .isFloat({ min: 0, max: 10 }).withMessage('Số giờ tập thể dục phải từ 0-10 giờ/tuần'),
     handleValidationErrors
   ],
   studentController.createOrUpdateBehavior
@@ -106,7 +111,6 @@ router.get('/prediction/history', studentController.getPredictionHistory);
 router.get('/prediction/latest', studentController.getLatestPrediction);
 
 // POST /api/v1/student/improvement-suggestions
-// UC19: Hỗ trợ cải thiện GPA
 router.post('/improvement-suggestions',
   [
     body('target_gpa')
@@ -114,6 +118,32 @@ router.post('/improvement-suggestions',
     handleValidationErrors
   ],
   studentController.getImprovementSuggestions
+);
+
+// ==================== CLASS INFO (UC29) ====================
+
+// GET /api/v1/student/class
+router.get('/class', classController.getStudentClassInfo);
+
+// ==================== INTERVENTION CONFIRMATION ====================
+
+// GET /api/v1/student/interventions/pending
+router.get('/interventions/pending', interventionController.getStudentInterventions);
+
+// POST /api/v1/student/interventions/:id/accept
+router.post('/interventions/:id/accept',
+  [param('id').isInt().withMessage('ID không hợp lệ'), handleValidationErrors],
+  interventionController.acceptIntervention
+);
+
+// POST /api/v1/student/interventions/:id/reject
+router.post('/interventions/:id/reject',
+  [
+    param('id').isInt().withMessage('ID không hợp lệ'),
+    body('reason').optional().isString(),
+    handleValidationErrors
+  ],
+  interventionController.rejectIntervention
 );
 
 module.exports = router;

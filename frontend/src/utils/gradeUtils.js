@@ -7,9 +7,9 @@ export const convertTo4Scale = (grade10) => {
   if (isNaN(score)) return 0;
 
   if (score >= 9.0) return 4.0;
-  if (score >= 8.5) return 3.7;
-  if (score >= 8.0) return 3.5;
-  if (score >= 7.5) return 3.3;
+  if (score >= 8.5) return 3.5;
+  if (score >= 8.0) return 3.2;
+  if (score >= 7.5) return 3.1;
   if (score >= 7.0) return 3.0;
   if (score >= 6.5) return 2.7;
   if (score >= 6.0) return 2.5;
@@ -32,15 +32,13 @@ export const convertToLetterGrade = (grade10) => {
   if (isNaN(score)) return 'F';
 
   if (score >= 9.0) return 'A+';
-  if (score >= 8.5) return 'A';
-  if (score >= 8.0) return 'B+';
-  if (score >= 7.5) return 'B';
-  if (score >= 7.0) return 'C+';
-  if (score >= 6.5) return 'C';
-  if (score >= 6.0) return 'D+';
-  if (score >= 5.5) return 'D';
-  if (score >= 5.0) return 'E';
-  if (score >= 4.0) return 'F+';
+  if (score >= 8.0) return 'A';
+  if (score >= 7.5) return 'B+';
+  if (score >= 7.0) return 'B';
+  if (score >= 6.5) return 'C+';
+  if (score >= 6.0) return 'C';
+  if (score >= 5.5) return 'D+';
+  if (score >= 4.0) return 'D';
   return 'F';
 };
 
@@ -86,6 +84,7 @@ export const isConditionalCourse = (courseName) => {
 /**
  * Calculate semester GPA (both scale 10 and scale 4)
  */
+
 export const calculateSemesterGPA = (grades) => {
   let totalWeighted10 = 0;
   let totalWeighted4 = 0;
@@ -94,8 +93,19 @@ export const calculateSemesterGPA = (grades) => {
   let failedCredits = 0;
 
   grades.forEach(grade => {
-    const credits = parseFloat(grade.credits) || 0;
-    const score10 = parseFloat(grade.total_score) || 0;
+      const credits =
+      parseFloat(
+        grade.credits ||
+        grade.subject?.credits ||
+        grade.course?.credits
+      ) || 0;
+    // Lấy điểm tổng kết
+    const score10 =
+      parseFloat(
+        grade.total_score ||
+        grade.final_score ||
+        grade.score
+      ) || 0;
     const score4 = convertTo4Scale(score10);
 
     totalWeighted10 += score10 * credits;

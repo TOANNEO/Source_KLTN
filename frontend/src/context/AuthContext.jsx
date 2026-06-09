@@ -25,7 +25,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await loginService(email, password);
 
-      if (response.success) {
+      if (!response.success) {
+        return {
+          success: false,
+          error: response.message || 'Đăng nhập thất bại'
+        };
+      }
+        
         const { token, user } = response.data;
 
         // Save to state
@@ -38,12 +44,15 @@ export const AuthProvider = ({ children }) => {
 
         // Return success without toast (LoginPage will handle success message)
         return { success: true };
-      }
+      
     } catch (error) {
       // Return error message without toast (LoginPage will display it)
       return {
         success: false,
-        error: error.message || 'Đăng nhập thất bại'
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          error.message || 'Đăng nhập thất bại'
       };
     }
   };

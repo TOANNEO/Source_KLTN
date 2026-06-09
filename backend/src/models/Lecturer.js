@@ -34,7 +34,12 @@ const Lecturer = sequelize.define('Lecturer', {
       model: 'departments',
       key: 'id'
     }
-  }
+  },
+  phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: 'Số điện thoại'
+  },
 }, {
   tableName: 'lecturers',
   timestamps: true,

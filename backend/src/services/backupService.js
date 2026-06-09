@@ -3,7 +3,7 @@ const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
-const { SystemBackup } = require('../models');
+const { SystemBackup, User } = require('../models');
 const { Op } = require('sequelize');
 
 // Backup directory path
@@ -134,7 +134,7 @@ const listBackups = async (filters = {}) => {
     ],
     include: [
       {
-        model: require('./User'),
+        model: User,
         as: 'creator',
         attributes: ['id', 'first_name', 'last_name', 'email'],
         required: false
@@ -252,13 +252,13 @@ const restoreBackup = async (backupId, userId) => {
         return reject(new Error("Restore failed with code " + code));
       }
 
-      await SystemBackup.create({
-        filename: `restore_from_${backup.filename}`,
-        file_size: backup.file_size,
-        backup_type: "full",
-        status: "success",
-        created_by: userId
-      });
+      // await SystemBackup.create({
+      //   filename: `restore_from_${backup.filename}`,
+      //   file_size: backup.file_size,
+      //   backup_type: "full",
+      //   status: "success",
+      //   created_by: userId
+      // });
 
       resolve({
         message: "Khôi phục thành công",
@@ -277,158 +277,3 @@ module.exports = {
 };
 
 
-
-
-
-/** 
- 
-// Backup Service - Database backup and restore operations
-const { exec } = require('child_process');
-const fs = require('fs').promises;
-const fsSync = require('fs');
-const path = require('path');
-const { SystemBackup } = require('../models');
-const { Op } = require('sequelize');
-
-// Backup directory path
-const BACKUP_DIR = path.join(__dirname, '../../backups');
-
-/**
- * Ensure backup directory exists
- 
-const ensureBackupDir = async () => {
-  try {
-    await fs.access(BACKUP_DIR);
-  } catch (error) {
-    await fs.mkdir(BACKUP_DIR, { recursive: true });
-  }
-};
-
-/**
- * Create a new database backup
- * @param {number} userId - ID of user creating the backup
- * @returns {Promise<Object>} Backup record with file info
- ---
-const createBackup = async (userId) => {
-  await ensureBackupDir();
-
-  // Generate filename with timestamp
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').split('.')[0];
-  const filename = `backup_${timestamp}.sql`;
-  const filepath = path.join(BACKUP_DIR, filename);
-
-  // Get database credentials from environment
-  const dbHost = process.env.DB_HOST || 'localhost';
-  const dbUser = process.env.DB_USER || 'root';
-  const dbPassword = process.env.DB_PASSWORD || '';
-  const dbName = process.env.DB_NAME || 'student_prediction_db';
-
-  // Build mysqldump command
-  // Using --single-transaction for InnoDB tables to avoid locking
-  const cmd = `mysqldump -h ${dbHost} -u ${dbUser} ${dbPassword ? `-p${dbPassword}` : ''} --single-transaction --routines --triggers ${dbName} > "${filepath}"`;
-
-  return new Promise((resolve, reject) => {
-    exec(cmd, async (error, stdout, stderr) => {
-      if (error) {
-        // Log failed backup to database
-        try {
-          await SystemBackup.create({
-            filename,
-            file_size: 0,
-            backup_type: 'full',
-            status: 'failed',
-            created_by: userId
-          });
-        } catch (dbError) {
-          console.error('Failed to log backup error:', dbError);
-        }
-        return reject(new Error(`Backup failed: ${error.message}`));
-      }
-
-      try {
-        // Get file size
-        const stats = await fs.stat(filepath);
-
-        // Log successful backup to database
-        const backupRecord = await SystemBackup.create({
-          filename,
-          file_size: stats.size,
-          backup_type: 'full',
-          status: 'success',
-          created_by: userId
-        });
-
-        resolve({
-          id: backupRecord.id,
-          filename: backupRecord.filename,
-          file_size: backupRecord.file_size,
-          backup_type: backupRecord.backup_type,
-          status: backupRecord.status,
-          created_at: backupRecord.created_at
-        });
-      } catch (dbError) {
-        // Backup file created but failed to log to database
-        reject(new Error(`Backup created but failed to log: ${dbError.message}`));
-      }
-    });
-  });
-};
-
-/**
- * Get list of all backups
- * @param {Object} filters - Optional filters (status, limit)
- * @returns {Promise<Array>} List of backup records
- 
-const listBackups = async (filters = {}) => {
-  const whereClause = {};
-
-  if (filters.status) {
-    whereClause.status = filters.status;
-  }
-
-  const options = {
-    where: whereClause,
-    order: [['created_at', 'DESC']],
-    attributes: ['id', 'filename', 'file_size', 'backup_type', 'status', 'created_at', 'created_by'],
-    include: [
-      {
-        model: require('./User'),
-        as: 'creator',
-        attributes: ['id', 'first_name', 'last_name', 'email'],
-        required: false
-      }
-    ]
-  };
-
-  if (filters.limit) {
-    options.limit = parseInt(filters.limit);
-  }
-
-  const backups = await SystemBackup.findAll(options);
-
-  // Check if files actually exist on disk
-  const backupsWithFileStatus = await Promise.all(
-    backups.map(async (backup) => {
-      const filepath = path.join(BACKUP_DIR, backup.filename);
-      let fileExists = false;
-
-      try {
-        await fs.access(filepath);
-        fileExists = true;
-      } catch (error) {
-        fileExists = false;
-      }
-
-      return {
-        ...backup.toJSON(),
-        file_exists: fileExists
-      };
-    })
-  );
-
-  return backupsWithFileStatus;
-};
-
-
-
- */

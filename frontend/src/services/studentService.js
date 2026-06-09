@@ -76,3 +76,27 @@ export const getPredictionHistory = async () => {
 export const getImprovementSuggestions = async (targetGPA) => {
   return await api.post('/student/improvement-suggestions', { target_gpa: targetGPA });
 };
+
+// ==================== CLASS INFO (UC29) ====================
+export const getStudentClass = async () =>
+  api.get('/student/class');
+
+// ==================== INTERVENTION CONFIRMATION ====================
+
+/**
+ * Lấy danh sách lịch can thiệp của sinh viên
+ */
+export const getStudentInterventions = async () =>
+  api.get('/student/interventions/pending');
+
+/**
+ * Sinh viên chấp nhận lịch can thiệp
+ */
+export const acceptIntervention = async (id) =>
+  api.post(`/student/interventions/${id}/accept`);
+
+/**
+ * Sinh viên từ chối lịch can thiệp
+ */
+export const rejectIntervention = async (id, reason) =>
+  api.post(`/student/interventions/${id}/reject`, { reason });

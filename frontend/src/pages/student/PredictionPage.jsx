@@ -1,62 +1,55 @@
-import { useState, useEffect } from 'react';
-import { runPrediction, getPredictionHistory } from '../../services/studentService';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { runPrediction } from '../../services/studentService';
 import toast from 'react-hot-toast';
 
 const PredictionPage = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(true);
+  const [countdown, setCountdown] = useState(null);
   const [prediction, setPrediction] = useState(null);
-  const [history, setHistory] = useState([]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
-    try {
-      setHistoryLoading(true);
-      const response = await getPredictionHistory();
-      console.log('History response:', response);
-      console.log('History data:', response?.data);
-
-      // Backend returns: { success: true, data: [...] }
-      // data is array directly, not { items: [...] }
-      const historyData = response?.data || [];
-
-      console.log('Parsed history data:', historyData);
-      console.log('Is array?', Array.isArray(historyData));
-      console.log('Length:', historyData.length);
-
-      setHistory(Array.isArray(historyData) ? historyData : []);
-    } catch (error) {
-      console.error('Error fetching history:', error);
-      setHistory([]);
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
 
   const handleRunPrediction = async () => {
     try {
       setLoading(true);
       const response = await runPrediction({});
-      
+
       console.log('Prediction response:', response);
 
-      const predictionData = response?.data?.data;
+      const predictionData = response?.data;
+        console.log('Extracted prediction data:', predictionData);
 
       if (predictionData) {
         setPrediction(predictionData);
-        toast.success('Dự báo thành công!');
-        // Refresh history
-        await fetchHistory();
+        toast.success('Dự báo thành công! Đang chuyển sang trang gợi ý...');
+
+        // Bắt đầu đếm ngược UI
+        setCountdown(3);
+        const timer = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+
+        // Chờ đúng 3s rồi tắt loading và chuyển trang
+        setTimeout(() => {
+          setLoading(false);
+          setCountdown(null);
+          navigate('/student/prediction-dashboard');
+        }, 3000);
+      } else {
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error running prediction:', error);
       const errorMsg = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi chạy dự báo';
       toast.error(errorMsg);
-    } finally {
       setLoading(false);
+      setCountdown(null);
     }
   };
 
@@ -112,6 +105,46 @@ const PredictionPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
+      {/* Countdown Overlay */}
+      {countdown !== null && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-10 text-center max-w-sm w-full mx-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Dự báo thành công!</h3>
+            <p className="text-gray-500 mb-6">Đang chuyển sang trang Gợi ý cải thiện học tập...</p>
+            <div className="relative w-24 h-24 mx-auto mb-4">
+              <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
+                <circle cx="48" cy="48" r="40" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                <circle
+                  cx="48" cy="48" r="40"
+                  fill="none"
+                  stroke="url(#countdownGrad)"
+                  strokeWidth="8"
+                  strokeDasharray={`${2 * Math.PI * 40}`}
+                  strokeDashoffset={`${2 * Math.PI * 40 * (1 - countdown / 3)}`}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 1s linear' }}
+                />
+                <defs>
+                  <linearGradient id="countdownGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#9333ea" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-3xl font-bold text-gray-800">
+                {countdown}
+              </span>
+            </div>
+            <p className="text-sm text-gray-400">Tự động chuyển sau {countdown} giây</p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -173,35 +206,6 @@ const PredictionPage = () => {
             <PredictionResult prediction={prediction} getRiskConfig={getRiskConfig} formatFactorName={formatFactorName} />
           </div>
         )}
-
-        {/* History */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Lịch sử dự báo</h2>
-
-          {historyLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="animate-pulse flex gap-4">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : history.length > 0 ? (
-            <PredictionHistory history={history} getRiskConfig={getRiskConfig} />
-          ) : (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-gray-500">Chưa có lịch sử dự báo</p>
-              <p className="text-sm text-gray-400 mt-2">Chạy dự báo để xem kết quả</p>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -273,52 +277,6 @@ const PredictionResult = ({ prediction, getRiskConfig, formatFactorName }) => {
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-// Prediction History Component
-const PredictionHistory = ({ history, getRiskConfig }) => {
-  return (
-    <div className="space-y-4">
-      {history.map((item, index) => {
-        const config = getRiskConfig(item.risk_label);
-        const date = new Date(item.credited_at);
-
-        return (
-          <div
-            key={item.id || index}
-            className="flex gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-          >
-            {/* Timeline dot */}
-            <div className="flex flex-col items-center">
-              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${config.bgGradient} flex items-center justify-center text-white font-bold shadow-lg`}>
-                {Number(item.predicted_gpa).toFixed(1) || 'N/A'}
-              </div>
-              {index < history.length - 1 && (
-                <div className="w-0.5 h-full bg-gray-300 mt-2"></div>
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 ${config.bgLight} ${config.textColor} rounded-full text-sm font-semibold`}>
-                    {config.label}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {date.toLocaleDateString('vi-VN')} {date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              </div>
-              <p className="text-gray-700">
-                GPA dự báo: <span className="font-bold">{Number(item.predicted_gpa).toFixed(2)}</span> / 10
-              </p>
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 };

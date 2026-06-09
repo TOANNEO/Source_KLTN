@@ -3,6 +3,7 @@ const { sequelize } = require('../config/database');
 // Import all models
 const User = require('./User');
 const Department = require('./Department');
+const Class = require('./Classes');
 const Student = require('./Student');
 const Lecturer = require('./Lecturer');
 const Semester = require('./Semester');
@@ -14,6 +15,7 @@ const GpaTarget = require('./GpaTarget');
 const PredictionHistory = require('./PredictionHistory');
 const ImprovementSuggestion = require('./ImprovementSuggestion');
 const SystemBackup = require('./SystemBackup');
+const InterventionLog = require('./InterventionLog');
 
 // Define associations
 const setupAssociations = () => {
@@ -23,8 +25,19 @@ const setupAssociations = () => {
   User.hasMany(GradeAuditLog, { foreignKey: 'changed_by', as: 'auditLogs' });
   User.hasMany(SystemBackup, { foreignKey: 'created_by', as: 'backups' });
 
+  // Department associations
+  Department.hasMany(Class, { foreignKey: 'department_id', as: 'classes' });
+  Department.hasMany(Lecturer, { foreignKey: 'department_id', as: 'lecturers' });
+  Department.hasMany(Course, { foreignKey: 'department_id', as: 'courses' });
+
+  // Class associations
+  Class.belongsTo(Department, { foreignKey: 'department_id', as: 'department' });
+  Class.belongsTo(Lecturer, { foreignKey: 'lecturer_id', as: 'homeroom_teacher' });
+  Class.hasMany(Student, { foreignKey: 'class_id', as: 'students' });
+
   // Student associations
   Student.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  Student.belongsTo(Class, { foreignKey: 'class_id', as: 'class' });
   Student.hasMany(Grade, { foreignKey: 'student_id', as: 'grades', onDelete: 'CASCADE' });
   Student.hasMany(BehaviorRecord, { foreignKey: 'student_id', as: 'behaviorRecords', onDelete: 'CASCADE' });
   Student.hasMany(GpaTarget, { foreignKey: 'student_id', as: 'gpaTargets', onDelete: 'CASCADE' });
@@ -34,10 +47,7 @@ const setupAssociations = () => {
   // Lecturer associations
   Lecturer.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   Lecturer.belongsTo(Department, { foreignKey: 'department_id', as: 'department' });
-
-  // Department associations
-  Department.hasMany(Lecturer, { foreignKey: 'department_id', as: 'lecturers' });
-  Department.hasMany(Course, { foreignKey: 'department_id', as: 'courses' });
+  Lecturer.hasMany(Class, { foreignKey: 'lecturer_id', as: 'homeroom_classes' });
 
   // Course associations
   Course.belongsTo(Department, { foreignKey: 'department_id', as: 'department' });
@@ -80,15 +90,23 @@ const setupAssociations = () => {
 
   // SystemBackup associations
   SystemBackup.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+
+  // InterventionLog associations
+  InterventionLog.belongsTo(Student, { foreignKey: 'student_id', as: 'student' });
+  InterventionLog.belongsTo(Lecturer, { foreignKey: 'lecturer_id', as: 'lecturer' });
+  InterventionLog.belongsTo(Semester, { foreignKey: 'semester_id', as: 'semester' });
+  Student.hasMany(InterventionLog, { foreignKey: 'student_id', as: 'interventionLogs' });
+  Lecturer.hasMany(InterventionLog, { foreignKey: 'lecturer_id', as: 'interventionLogs' });
 };
 
 // Initialize associations
 setupAssociations();
 
-module.exports = {
+module.exports = { 
   sequelize,
   User,
   Department,
+  Class,
   Student,
   Lecturer,
   Semester,
@@ -99,5 +117,6 @@ module.exports = {
   GpaTarget,
   PredictionHistory,
   ImprovementSuggestion,
-  SystemBackup
+  SystemBackup,
+  InterventionLog
 };

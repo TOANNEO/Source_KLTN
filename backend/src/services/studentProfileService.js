@@ -25,8 +25,7 @@ const getStudentProfile = async (userId) => {
 };
 
 /**
- * Get all grades for a student
- * UC14: Xem bảng điểm toàn khóa
+ *  Xem bảng điểm toàn khóa
  */
 const getStudentGrades = async (userId, filters = {}) => {
   const student = await Student.findOne({ where: { user_id: userId } });
@@ -63,12 +62,12 @@ const getStudentGrades = async (userId, filters = {}) => {
     ]
   });
 
-  return grades;
+  // Convert Sequelize instances to plain JSON objects
+  return grades.map(grade => grade.toJSON());
 };
 
 /**
- * Get grades by semester for a student
- * UC14: Điểm theo học kỳ
+ * Điểm theo học kỳ
  */
 const getGradesBySemester = async (userId, semesterId) => {
   const student = await Student.findOne({ where: { user_id: userId } });
@@ -188,8 +187,7 @@ const getGPAHistory = async (userId) => {
 };
 
 /**
- * Get student dashboard data
- * UC14: Dashboard với GPA, biểu đồ, thống kê
+ *  Dashboard với GPA, biểu đồ, thống kê
  */
 const getStudentDashboard = async (userId) => {
   const student = await getStudentProfile(userId);

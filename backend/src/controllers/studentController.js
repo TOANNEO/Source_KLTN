@@ -296,7 +296,7 @@ const getLatestPrediction = async (req, res) => {
 
 /**
  * POST /api/v1/student/improvement-suggestions
- * UC19: Hỗ trợ cải thiện GPA
+ *  Hỗ trợ  ra quyết định học cải thiện GPA
  */
 const getImprovementSuggestions = async (req, res) => {
   try {

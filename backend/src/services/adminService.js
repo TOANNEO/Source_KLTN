@@ -1,55 +1,82 @@
-const { User, Student, Lecturer, Course, Semester, PredictionHistory } = require('../models');
+const { User, Student, Lecturer, Course, Semester, Grade, PredictionHistory, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
 
 /**
- * Get dashboard statistics
+ * Get dashboard statistics — returns accountStats + gradeTrends
  */
 const getDashboardStats = async () => {
-  // Tổng số sinh viên
-  const totalStudents = await Student.count();
+  // Active / inactive per role
+  const [
+    adminActive, adminInactive,
+    studentActive, studentInactive,
+    lecturerActive, lecturerInactive
+  ] = await Promise.all([
+    User.count({ where: { role: 'admin',    is_active: true  } }),
+    User.count({ where: { role: 'admin',    is_active: false } }),
+    User.count({ where: { role: 'student',  is_active: true  } }),
+    User.count({ where: { role: 'student',  is_active: false } }),
+    User.count({ where: { role: 'lecturer', is_active: true  } }),
+    User.count({ where: { role: 'lecturer', is_active: false } })
+  ]);
 
-  // Tổng số giảng viên
-  const totalLecturers = await Lecturer.count();
-
-  // Tổng số môn học
-  const totalCourses = await Course.count();
-
-  // Học kỳ hiện tại
-  const currentSemester = await Semester.findOne({
-    where: { is_current: true }
-  });
-  // số lượng tài khoản theo vai trò
-  const adminCount = await User.count({ where: { role: 'admin' } });
-  const studentCount = await User.count({ where: { role: 'student' } });
-  const lecturerCount = await User.count({ where: { role: 'lecturer' } });
-
-  // Tổng số tài khoản
-  const totalAccounts = await User.count();
-
-  // Số SV nguy cơ trong học kỳ hiện tại
-  const atRiskStats = await getAtRiskStudents(currentSemester);
-
-  return {
-    overview: {
-      totalStudents,
-      totalLecturers,
-      totalCourses,
-      currentSemester: currentSemester ? {
-        id: currentSemester.id,
-        name: currentSemester.name,
-        start_date: currentSemester.start_date,
-        end_date: currentSemester.end_date
-      } : null
-    },
-    accounts: {
-      total: totalAccounts,
-      admin: adminCount,
-      student: studentCount,
-      lecturer: lecturerCount
-    },
-    atRisk: atRiskStats
+  const accountStats = {
+    admin:    { active: adminActive,    inactive: adminInactive    },
+    student:  { active: studentActive,  inactive: studentInactive  },
+    lecturer: { active: lecturerActive, inactive: lecturerInactive }
   };
+
+  // Average grade per course per semester (for line chart)
+  let gradeTrends = [];
+  try {
+    gradeTrends = await Grade.findAll({
+      attributes: [
+        'course_id',
+        'semester_id',
+        [sequelize.fn('AVG', sequelize.col('Grade.total_score')), 'avg_score']
+      ],
+      include: [
+        { model: Course,   as: 'course',   attributes: ['id', 'course_code', 'course_name'] },
+        { model: Semester, as: 'semester', attributes: ['id', 'name', 'academic_year', 'start_date'] }
+      ],
+      group: ['course_id', 'semester_id', 'course.id', 'semester.id'],
+      order: [[{ model: Semester, as: 'semester' }, 'start_date', 'ASC']],
+      raw: false
+    });
+
+    // Flatten for JSON serialization
+    gradeTrends = gradeTrends.map(g => ({
+      course_id:  g.course_id,
+      semester_id: g.semester_id,
+      avg_score:  parseFloat(Number(g.dataValues.avg_score || 0).toFixed(2)),
+      Course:   g.course   ? { id: g.course.id,   course_code: g.course.course_code,   course_name: g.course.course_name }   : null,
+      Semester: g.semester ? { id: g.semester.id, name: g.semester.name, academic_year: g.semester.academic_year, start_date: g.semester.start_date } : null
+    }));
+  } catch (err) {
+    console.error('gradeTrends query error:', err.message);
+    gradeTrends = [];
+  }
+
+  return { accountStats, gradeTrends };
+};
+
+/**
+ * Get recent logins (ordered by last_login_at DESC)
+ */
+const getRecentLogins = async (limit = 20) => {
+  return await User.findAll({
+    where: { last_login_at: { [Op.not]: null } },
+    attributes: ['id', 'email', 'first_name', 'last_name', 'role', 'last_login_at'],
+    order: [['last_login_at', 'DESC']],
+    limit: parseInt(limit)
+  });
+};
+
+/**
+ * Update last_login_at timestamp for a user
+ */
+const updateLastLogin = async (userId) => {
+  await User.update({ last_login_at: new Date() }, { where: { id: userId } });
 };
 
 /**
@@ -213,6 +240,8 @@ const deleteUser = async (userId) => {
 
 module.exports = {
   getDashboardStats,
+  getRecentLogins,
+  updateLastLogin,
   getAtRiskStudents,
   getAllUsers,
   createUser,

@@ -55,12 +55,13 @@ const startServer = async () => {
   try {
     // Connect to database
     await connectDB();
-    console.log('✓ Database connected successfully');
 
+    await models.sequelize.authenticate();
+    console.log('✓ Database connected successfully');
+    
     // Sync models (only in development)
     if (process.env.NODE_ENV === 'development') {
-      // Use { alter: true } to update tables without dropping data
-      // Use { force: true } to drop and recreate tables (WARNING: deletes all data)
+      // alter: true → tự thêm column mới / tạo bảng mới mà không xóa dữ liệu
       await models.sequelize.sync({ alter: false });
       console.log('✓ Database models synchronized');
     }

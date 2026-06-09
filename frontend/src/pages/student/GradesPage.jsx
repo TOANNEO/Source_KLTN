@@ -20,30 +20,24 @@ const GradesPage = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Fetching grades data...');
+  
 
       const [gradesRes, profileRes] = await Promise.allSettled([
         getGrades(),
         getProfile()
       ]);
 
-      console.log('Grades response:', gradesRes);
-      console.log('Profile response:', profileRes);
 
       if (gradesRes.status === 'fulfilled') {
         console.log('Grades response value:', gradesRes.value);
-        console.log('Grades response data:', gradesRes.value?.data);
 
-        // Check different possible data structures
-        const grades = gradesRes.value?.data?.data || gradesRes.value?.data || [];
-        console.log('Extracted grades:', grades);
-        console.log('Grades is array?', Array.isArray(grades));
-        console.log('Grades length:', grades.length);
+
+        const grades = gradesRes.value?.data || [];
+    
 
         if (Array.isArray(grades) && grades.length > 0) {
-          console.log('First grade sample:', grades[0]);
           const grouped = groupGradesByYearAndSemester(grades);
-          console.log('Grouped grades:', grouped);
+
           setGradesData(grouped);
         } else {
           console.warn('No grades data or not an array');
@@ -53,7 +47,8 @@ const GradesPage = () => {
       }
 
       if (profileRes.status === 'fulfilled') {
-        const profileData = profileRes.value?.data?.data || profileRes.value?.data;
+        // API interceptor already unwraps response.data
+        const profileData = profileRes.value?.data;
         console.log('Profile data:', profileData);
         setProfile(profileData);
       } else {

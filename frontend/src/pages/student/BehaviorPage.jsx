@@ -12,7 +12,9 @@ const BehaviorPage = () => {
     class_attendance: " ",
     social_media_hours: " ",
     screen_time_hours: " ",
-    mental_stress_level: " "
+    mental_stress_level: " ",
+    extracurricular_hours_per_week: " ",
+    exercise_hours_per_week: " "
   });
 
   useEffect(() => {
@@ -23,13 +25,8 @@ const BehaviorPage = () => {
     try {
       setLoading(true);
       const response = await getCurrentBehavior();
-
-      // Backend can return either:
-      // 1. { success: true, data: behavior } - when behavior exists
-      // 2. { success: true, data: null } - when no behavior exists
+   
       const behaviorData = response?.data?.data || response?.data;
-
-      console.log('Behavior data:', behaviorData);
 
       if (behaviorData && behaviorData.study_hours_per_day !== undefined) {
         const newFormData = {
@@ -38,11 +35,13 @@ const BehaviorPage = () => {
           class_attendance: parseFloat(behaviorData.class_attendance) || 0,
           social_media_hours: parseFloat(behaviorData.social_media_hours) || 0,
           screen_time_hours: parseFloat(behaviorData.screen_time_hours) || 0,
-          mental_stress_level: parseInt(behaviorData.mental_stress_level) || 0
+          mental_stress_level: parseInt(behaviorData.mental_stress_level) || 0,
+          extracurricular_hours_per_week: parseFloat(behaviorData.extracurricular_hours_per_week) || 0,
+          exercise_hours_per_week: parseFloat(behaviorData.exercise_hours_per_week) || 0
         };
+        setFormData(newFormData);
 
         if (behaviorData.semester) {
-          console.log('Setting semester:', behaviorData.semester);
           setCurrentSemester(behaviorData.semester);
         }
       } else {
@@ -53,7 +52,9 @@ const BehaviorPage = () => {
           class_attendance: 0,
           social_media_hours: 0,
           screen_time_hours: 0,
-          mental_stress_level: 0
+          mental_stress_level: 0,
+          extracurricular_hours_per_week: 0,
+          exercise_hours_per_week: 0
         });
       }
     } catch (error) {
@@ -64,7 +65,9 @@ const BehaviorPage = () => {
         class_attendance: 0,
         social_media_hours: 0,
         screen_time_hours: 0,
-        mental_stress_level: 0
+        mental_stress_level: 0,
+        extracurricular_hours_per_week: 0,
+        exercise_hours_per_week: 0
       });
     } finally {
       setLoading(false);
@@ -78,17 +81,38 @@ const BehaviorPage = () => {
     }));
   };
 
+  const totalHours =
+    Number(formData.study_hours_per_day) +
+    Number(formData.sleep_hours_per_day) +
+    Number(formData.social_media_hours) +
+    Number(formData.extracurricular_hours_per_week)/7 +
+    Number(formData.exercise_hours_per_week)/7 +
+    Number(formData.screen_time_hours);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Kiểm tra tổng số giờ trong ngày
+  const totalHours =
+    Number(formData.study_hours_per_day) +
+    Number(formData.sleep_hours_per_day) +
+    Number(formData.social_media_hours) +
+    Number(formData.extracurricular_hours_per_week)/7 +
+    Number(formData.exercise_hours_per_week)/7 +
+    Number(formData.screen_time_hours);
+
+  if (totalHours > 24) {
+    toast.error(
+      `Quỹ thời gian một ngày là có hạn, bạn hãy phân chia hợp lý (${totalHours.toFixed(1)} giờ) để không được vượt quá 24 giờ/ngày`
+    );
+    return;
+  }
 
     try {
       setSubmitting(true);
 
-      // Get current semester ID (you may need to fetch this from an API)
-      const semesterId = currentSemester?.id || 1; // Default to 1 if not available
+  
 
       const payload = {
-        semester_id: semesterId,
         ...formData
       };
 
@@ -115,7 +139,7 @@ const BehaviorPage = () => {
       label: 'Số giờ tự học mỗi ngày',
       min: 0,
       max: 16,
-      step: 0.5,
+      step: 0.1, 
       unit: 'giờ',
       icon: '📚',
       color: 'blue',
@@ -126,7 +150,7 @@ const BehaviorPage = () => {
       label: 'Số giờ ngủ mỗi ngày',
       min: 0,
       max: 12,
-      step: 0.5,
+      step: 0.1,
       unit: 'giờ',
       icon: '😴',
       color: 'purple',
@@ -148,7 +172,7 @@ const BehaviorPage = () => {
       label: 'Thời gian dùng mạng xã hội',
       min: 0,
       max: 24,
-      step: 0.5,
+      step: 0.1,
       unit: 'giờ',
       icon: '📱',
       color: 'pink',
@@ -159,7 +183,7 @@ const BehaviorPage = () => {
       label: 'Thời gian sử dụng màn hình',
       min: 0,
       max: 24,
-      step: 0.5,
+      step: 0.1,
       unit: 'giờ',
       icon: '💻',
       color: 'orange',
@@ -175,7 +199,29 @@ const BehaviorPage = () => {
       icon: '😰',
       color: 'red',
       description: 'Đánh giá mức độ stress (0: Rất thấp, 9: Rất cao)'
-    }
+    },
+    {
+      name: 'extracurricular_hours_per_week',
+      label: 'Tham gia hoạt động ngoại khóa',
+      min: 0,
+      max: 24,
+      step: 0.1,
+      unit: 'giờ',
+      icon: '🎨',
+      color: 'blue',
+      description: 'Thời gian tham gia hoạt động ngoại khóa mỗi tuần (học nhóm, câu lạc bộ, thể thao...)'
+    },
+    {
+      name: 'exercise_hours_per_week',
+      label: 'Số giờ tập thể dục mỗi tuần',
+      min: 0,
+      max: 10,
+      step: 0.1,
+      unit: 'giờ',
+      icon: '🏃️',
+      color: 'blue',
+      description: 'Thời gian dành cho hoạt động thể chất mỗi tuần'
+    },
   ];
 
   const getColorClasses = (color) => {
@@ -226,7 +272,7 @@ const BehaviorPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span className="font-medium">
-                Học kỳ hiện tại: {currentSemester.name} - {currentSemester.academic_year}
+                Học kỳ hiện tại: {currentSemester.name}
               </span>
             </div>
           )}
@@ -299,6 +345,22 @@ const BehaviorPage = () => {
               </div>
             );
           })}
+          {/* Tổng thời gian trong ngày */}
+          <div
+            className={`p-4 rounded-lg border ${
+              totalHours > 24
+                ? 'bg-red-50 border-red-300 text-red-700'
+                : 'bg-green-50 border-green-300 text-green-700'
+            }`}
+          >
+            Tổng thời gian trong ngày: <strong>{totalHours.toFixed(1)} giờ</strong>
+
+            {totalHours > 24 && (
+              <div className="mt-1 font-medium">
+                ⚠️ Vui lòng điều chỉnh để tổng thời gian không vượt quá 24 giờ.
+              </div>
+            )}
+          </div>
 
           {/* Submit Button */}
           <div className="flex gap-4">
@@ -318,13 +380,6 @@ const BehaviorPage = () => {
               ) : (
                 'Lưu thông tin'
               )}
-            </button>
-            <button
-              type="button"
-              onClick={fetchCurrentBehavior}
-              className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-            >
-              Làm mới
             </button>
           </div>
         </form>

@@ -10,6 +10,8 @@ const getGrades = async (req, res) => {
       student_id: req.query.student_id,
       course_id: req.query.course_id,
       semester_id: req.query.semester_id,
+      class_id: req.query.class_id,
+      course_year: req.query.course_year,
       is_improvement: req.query.is_improvement
     };
 

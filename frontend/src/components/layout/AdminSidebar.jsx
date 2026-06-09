@@ -15,17 +15,16 @@ const AdminSidebar = () => {
 
   const menuItems = [
     { path: '/admin/dashboard', icon: HomeIcon, label: 'Dashboard' },
-    { path: '/admin/users', icon: UsersIcon, label: 'Quản lý người dùng' },
     { path: '/admin/students', icon: AcademicCapIcon, label: 'Quản lý sinh viên' },
     { path: '/admin/lecturers', icon: UsersIcon, label: 'Quản lý giảng viên' },
+    { path: '/admin/classes', icon: BookOpenIcon, label: 'Quản lý lớp học' },
     { path: '/admin/courses', icon: BookOpenIcon, label: 'Quản lý học phần' },
     { path: '/admin/semesters', icon: CalendarIcon, label: 'Quản lý học kỳ' },
     { path: '/admin/grades', icon: ChartBarIcon, label: 'Quản lý điểm' },
-    { path: '/admin/backup', icon: CircleStackIcon, label: 'Sao lưu & Khôi phục' },
-    { path: '/admin/settings', icon: CogIcon, label: 'Cài đặt' }
+    { path: '/admin/backup', icon: CircleStackIcon, label: 'Sao lưu & Khôi phục' }
   ];
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">

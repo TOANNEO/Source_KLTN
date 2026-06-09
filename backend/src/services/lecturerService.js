@@ -1,10 +1,29 @@
-const { Lecturer, User, Department } = require('../models');
+const { Lecturer, User, Department, Class } = require('../models');
 const { hashPassword } = require('./authService');
-const { Op } = require('sequelize');
-
+const { Op, Sequelize } = require('sequelize');
+const { getLecturerByUserId } = require('./interventionService');
 /**
  * Get all lecturers with filters
+ * LEFT JOINs classes so we can show homeroom class(es)
  */
+const lecturerIncludes = [
+      {
+        model: User,
+        as: 'user',
+        attributes: ['id', 'email', 'first_name', 'last_name', 'is_active']
+      },
+      {
+        model: Department,
+        as: 'department',
+        attributes: ['id', 'code', 'name']
+      },
+      {
+        model: Class,
+        as: 'homeroom_classes',
+        required: false,
+        attributes: ['id', 'class_name']
+      }
+    ];
 const getAllLecturers = async (filters = {}) => {
   const where = {};
 
@@ -12,25 +31,22 @@ const getAllLecturers = async (filters = {}) => {
     where.department_id = filters.department_id;
   }
 
+  if (filters.degree) {
+    where.degree = filters.degree;
+  }
+
   if (filters.search) {
     where[Op.or] = [
-      { lecturer_code: { [Op.like]: `%${filters.search}%` } }
+      { lecturer_code: { [Op.like]: `%${filters.search}%` } },
+      { '$user.last_name$': { [Op.like]: `%${filters.search}%` } },
+      { '$user.first_name$': { [Op.like]: `%${filters.search}%` } },
+       Sequelize.literal( `CONCAT(user.first_name, ' ', user.last_name) LIKE '%${filters.search}%'` )
     ];
   }
 
   return await Lecturer.findAll({
     where,
-    include: [
-      {
-        model: User,
-        as: 'user',
-        attributes: ['id', 'email', 'first_name', 'last_name']
-      },
-      {
-        model: Department,
-        as: 'department'
-      }
-    ],
+    include: lecturerIncludes,
     order: [['lecturer_code', 'ASC']]
   });
 };
@@ -44,11 +60,18 @@ const getLecturerById = async (id) => {
       {
         model: User,
         as: 'user',
-        attributes: ['id', 'email', 'first_name', 'last_name']
+        attributes: ['id', 'email', 'first_name', 'last_name', 'is_active']
       },
       {
         model: Department,
-        as: 'department'
+        as: 'department',
+        attributes: ['id', 'code', 'name']
+      },
+      {
+        model: Class,
+        as: 'homeroom_classes',
+        required: false,
+        attributes: ['id', 'class_name']
       }
     ]
   });
@@ -71,60 +94,55 @@ const createLecturer = async (data) => {
     last_name,
     lecturer_code,
     degree,
-    department_id
+    department_id,
+    phone
   } = data;
 
-  // Check if email exists
   const existingUser = await User.findOne({ where: { email } });
-  if (existingUser) {
-    throw new Error('Email đã tồn tại');
-  }
+  if (existingUser) throw new Error('Email đã tồn tại');
 
-  // Check if lecturer code exists
   const existingLecturer = await Lecturer.findOne({ where: { lecturer_code } });
-  if (existingLecturer) {
-    throw new Error('Mã giảng viên đã tồn tại');
-  }
+  if (existingLecturer) throw new Error('Mã giảng viên đã tồn tại');
 
-  // Validate department
   const department = await Department.findByPk(department_id);
-  if (!department) {
-    throw new Error('Không tìm thấy khoa');
-  }
+  if (!department) throw new Error('Không tìm thấy khoa');
 
-  // Hash password
-  const hashedPassword = await hashPassword(password || '123456');
+  const hashedPassword = await hashPassword(password || 'TLU@123456');
 
-  // Create user
   const user = await User.create({
     email,
     password: hashedPassword,
     role: 'lecturer',
     first_name,
-    last_name
+    last_name,
+    is_active: true
   });
 
-  // Create lecturer profile
   const lecturer = await Lecturer.create({
     user_id: user.id,
     lecturer_code,
     degree,
-    department_id
+    department_id,
+    phone: phone || null,
   });
 
   return await getLecturerById(lecturer.id);
 };
 
 /**
- * Update lecturer
+ * Update lecturer — blocked if is_active = 0
  */
 const updateLecturer = async (id, data) => {
   const lecturer = await Lecturer.findByPk(id, {
     include: [{ model: User, as: 'user' }]
   });
 
-  if (!lecturer) {
-    throw new Error('Không tìm thấy giảng viên');
+  if (!lecturer) throw new Error('Không tìm thấy giảng viên');
+
+  if (!lecturer.user.is_active) {
+    const err = new Error('Tài khoản không hoạt động');
+    err.status = 403;
+    throw err;
   }
 
   const {
@@ -133,94 +151,124 @@ const updateLecturer = async (id, data) => {
     last_name,
     lecturer_code,
     degree,
-    department_id
+    department_id,
+    phone
   } = data;
 
-  // Check if new lecturer code conflicts
   if (lecturer_code && lecturer_code !== lecturer.lecturer_code) {
     const existing = await Lecturer.findOne({
-      where: {
-        lecturer_code,
-        id: { [Op.ne]: id }
-      }
+      where: { lecturer_code, id: { [Op.ne]: id } }
     });
-    if (existing) {
-      throw new Error('Mã giảng viên đã tồn tại');
-    }
+    if (existing) throw new Error('Mã giảng viên đã tồn tại');
   }
 
-  // Validate department if changed
   if (department_id && department_id !== lecturer.department_id) {
     const department = await Department.findByPk(department_id);
-    if (!department) {
-      throw new Error('Không tìm thấy khoa');
-    }
+    if (!department) throw new Error('Không tìm thấy khoa');
   }
 
-  // Update user info
-  if (email || first_name || last_name) {
-    // Check if new email conflicts
+  if (email || first_name || last_name || phone !== undefined) {
     if (email && email !== lecturer.user.email) {
       const existingUser = await User.findOne({
-        where: {
-          email,
-          id: { [Op.ne]: lecturer.user_id }
-        }
+        where: { email, id: { [Op.ne]: lecturer.user_id } }
       });
-      if (existingUser) {
-        throw new Error('Email đã tồn tại');
-      }
+      if (existingUser) throw new Error('Email đã tồn tại');
     }
 
     await lecturer.user.update({
-      email: email || lecturer.user.email,
-      first_name: first_name || lecturer.user.first_name,
-      last_name: last_name || lecturer.user.last_name
+      ...(email      && { email }),
+      ...(first_name && { first_name }),
+      ...(last_name  && { last_name })
     });
   }
 
-  // Update lecturer profile
   await lecturer.update({
-    lecturer_code: lecturer_code || lecturer.lecturer_code,
-    degree: degree || lecturer.degree,
-    department_id: department_id || lecturer.department_id
+    ...(lecturer_code  && { lecturer_code }),
+    ...(degree         && { degree }),
+    ...(department_id  && { department_id }),
+     ...(phone !== undefined && { phone: phone || null })
   });
 
   return await getLecturerById(id);
 };
 
 /**
- * Delete lecturer
+ * Soft-delete: set is_active = 0
  */
 const deleteLecturer = async (id) => {
   const lecturer = await Lecturer.findByPk(id, {
     include: [{ model: User, as: 'user' }]
   });
 
-  if (!lecturer) {
-    throw new Error('Không tìm thấy giảng viên');
-  }
+  if (!lecturer) throw new Error('Không tìm thấy giảng viên');
 
-  // Delete lecturer and user
-  await lecturer.destroy();
-  await lecturer.user.destroy();
+  await lecturer.user.update({ is_active: false });
 
   return true;
 };
 
-// ==================== UC22: AT-RISK STUDENTS ====================
+/**
+ * Toggle is_active 0 <-> 1
+ */
+const toggleLecturerActive = async (id) => {
+  const lecturer = await Lecturer.findByPk(id, {
+    include: [{ model: User, as: 'user' }]
+  });
+
+  if (!lecturer) throw new Error('Không tìm thấy giảng viên');
+
+  const newState = !lecturer.user.is_active;
+  await lecturer.user.update({ is_active: newState });
+
+  return { is_active: newState };
+};
 
 /**
- * UC22: Get at-risk students with filters
+ * Reset password
+ */
+const resetLecturerPassword = async (id, newPassword) => {
+  const lecturer = await Lecturer.findByPk(id, {
+    include: [{ model: User, as: 'user' }]
+  });
+
+  if (!lecturer) throw new Error('Không tìm thấy giảng viên');
+
+  const hashed = await hashPassword(newPassword);
+  await lecturer.user.update({ password: hashed });
+
+  return true;
+};
+
+// ====================  AT-RISK STUDENTS ====================
+
+/**
+ *  Get at-risk students with filters
  * @param {Object} filters - { semester_id, predicted_gpa_threshold, stress_level }
  * @returns {Promise<Array>} List of at-risk students
  */
-const getAtRiskStudents = async (filters = {}) => {
-  const { Student, PredictionHistory, BehaviorRecord, Semester, User } = require('../models');
+const getAtRiskStudents = async (userId,filters = {}) => {
+  const { Student, PredictionHistory, BehaviorRecord, Semester, User, InterventionLog } = require('../models');
+  const lecturer = await getLecturerByUserId(userId);
+  const lecturerClasses = await Class.findAll({
+    where: { lecturer_id: lecturer.id },
+    attributes: ['id']
+  });
+  const classIds = lecturerClasses.map(c => c.id);
 
-  const where = {};
+  if (classIds.length === 0) {
+    return [];
+}
+  const where = {
+    class_id: {
+    [Op.in]: classIds
+  }};
   const predictionWhere = {};
   const behaviorWhere = {};
+
+  // Filter by class
+  if (filters.class_id) {
+    where.class_id = filters.class_id;
+  }
 
   // Filter by semester
   if (filters.semester_id) {
@@ -228,12 +276,6 @@ const getAtRiskStudents = async (filters = {}) => {
     behaviorWhere.semester_id = filters.semester_id;
   }
 
-  // Filter by predicted GPA threshold
-  if (filters.predicted_gpa_threshold) {
-    predictionWhere.predicted_gpa = {
-      [Op.lte]: parseFloat(filters.predicted_gpa_threshold)
-    };
-  }
 
   // Get students with predictions
   const students = await Student.findAll({
@@ -247,43 +289,59 @@ const getAtRiskStudents = async (filters = {}) => {
       {
         model: PredictionHistory,
         as: 'predictions',
-        where: predictionWhere,
-        required: true,
+        where: Object.keys(predictionWhere).length > 0 ? predictionWhere : undefined,
+        required: Object.keys(predictionWhere).length > 0,
         include: [{
           model: Semester,
           as: 'semester',
           attributes: ['id', 'name', 'academic_year']
         }],
         order: [['predicted_at', 'DESC']],
-        limit: 1
+        limit: 1,
+        separate: true
       },
       {
         model: BehaviorRecord,
         as: 'behaviorRecords',
-        where: behaviorWhere,
+        where: Object.keys(behaviorWhere).length > 0 ? behaviorWhere : undefined,
         required: false,
+        separate: true,
         include: [{
           model: Semester,
           as: 'semester',
           attributes: ['id', 'name', 'academic_year']
         }]
-      }
+      },
+      {
+        model: Class,
+        as: 'class',
+        attributes: ['id', 'class_name']
+      },
+        {
+        model: InterventionLog,
+        as: 'interventionLogs',
+        required: false,
+        attributes: ['id']
+        }
     ]
   });
 
-  // Format and filter results
-  const results = students.map(student => {
+  // Format and filter results — skip students with no prediction loaded
+  const results = students
+    .filter(student => student.predictions && student.predictions.length > 0)
+    .map(student => {
     const latestPrediction = student.predictions[0];
     const behaviorRecord = student.behaviorRecords.find(
       b => b.semester_id === latestPrediction.semester_id
     );
-
+  
     return {
       student_id: student.id,
       student_code: student.student_code,
-      full_name: student.full_name,
+      full_name: `${student.user.first_name} ${student.user.last_name}`,
       email: student.user.email,
       major: student.major,
+      class_name: student.class?.class_name,
       course_year: student.course_year,
       current_gpa: student.gpa_cumulative,
       predicted_gpa: latestPrediction.predicted_gpa,
@@ -296,18 +354,39 @@ const getAtRiskStudents = async (filters = {}) => {
         name: latestPrediction.semester.name,
         academic_year: latestPrediction.semester.academic_year
       },
-      predicted_at: latestPrediction.predicted_at
+      predicted_at: latestPrediction.predicted_at,
+      intervention_count: student.interventionLogs?.length || 0
     };
   });
+  // Filter by risk label if provided
+    let filteredResults = [...results];
+    if (filters.risk_label) {
+      filteredResults = filteredResults.filter(
+        r => r.risk_label === filters.risk_label
+      );
+    }
 
   // Filter by stress level if provided
-  let filteredResults = results;
   if (filters.stress_level) {
     const stressThreshold = parseInt(filters.stress_level);
     filteredResults = results.filter(r =>
       r.stress_level !== null && r.stress_level >= stressThreshold
     );
   }
+
+  
+// Filter by predicted GPA threshold
+if (filters.predicted_gpa_threshold) {
+  const threshold = parseFloat(filters.predicted_gpa_threshold);
+
+  filteredResults = filteredResults.filter(
+    r =>
+      r.predicted_gpa !== null &&
+      parseFloat(r.predicted_gpa) <= threshold
+  );
+}
+
+
 
   // Sort by risk (danger > warning > safe) and then by predicted GPA
   const riskOrder = { danger: 0, warning: 1, safe: 2 };
@@ -354,25 +433,27 @@ const getStudentDetailReport = async (studentId) => {
         order: [['semester_id', 'ASC']]
       },
       {
-        model: PredictionHistory,
-        as: 'predictions',
-        include: [{
-          model: Semester,
-          as: 'semester',
-          attributes: ['id', 'name', 'academic_year']
-        }],
-        order: [['predicted_at', 'DESC']],
-        limit: 5
-      },
-      {
+      model: PredictionHistory,
+      as: 'predictions',
+      separate: true,
+      limit: 5,
+      order: [['predicted_at', 'DESC']],
+      include: [{
+        model: Semester,
+        as: 'semester',
+        attributes: ['id', 'name', 'academic_year']
+      }]
+},
+          {
         model: BehaviorRecord,
         as: 'behaviorRecords',
+        separate: true,
+        order: [['semester_id', 'DESC']],
         include: [{
           model: Semester,
           as: 'semester',
           attributes: ['id', 'name', 'academic_year']
-        }],
-        order: [['semester_id', 'DESC']]
+        }]
       }
     ]
   });
@@ -385,7 +466,7 @@ const getStudentDetailReport = async (studentId) => {
     student_info: {
       id: student.id,
       student_code: student.student_code,
-      full_name: student.full_name,
+      full_name: `${student.user.first_name} ${student.user.last_name}`,
       email: student.user.email,
       major: student.major,
       course_year: student.course_year,
@@ -512,7 +593,7 @@ const getImprovementReport = async (filters = {}) => {
       report.push({
         student_id: student.id,
         student_code: student.student_code,
-        full_name: student.full_name,
+        full_name: `${student.user.first_name} ${student.user.last_name}`,
         email: student.user.email,
         course_code: improvementGrade.course.course_code,
         course_name: improvementGrade.course.course_name,
@@ -554,6 +635,8 @@ module.exports = {
   createLecturer,
   updateLecturer,
   deleteLecturer,
+  toggleLecturerActive,
+  resetLecturerPassword,
   getAtRiskStudents,
   getStudentDetailReport,
   getImprovementReport

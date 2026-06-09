@@ -60,12 +60,17 @@ const login = async (email, password) => {
     throw new Error('Email hoặc mật khẩu không đúng');
   }
 
+   // Check if user is active
+  if (!user.is_active) {
+    throw new Error('Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.');
+  }
+
   // Check password
   const isValidPassword = await comparePassword(password, user.password);
   if (!isValidPassword) {
     throw new Error('Email hoặc mật khẩu không đúng');
   }
-
+ 
   // Generate token
   const token = generateToken(user);
 

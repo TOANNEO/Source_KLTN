@@ -13,6 +13,7 @@ import {
   getStudents,
   getCourses,
   getSemesters,
+  getClasses,
   exportGradesToExcel,
   exportGradesToPDF
 } from '../../services/adminService';
@@ -22,6 +23,7 @@ const GradesPage = () => {
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [semesters, setSemesters] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,6 +36,8 @@ const GradesPage = () => {
     semester_id: '',
     student_id: '',
     course_id: '',
+    class_id: '',
+    course_year: '',
     is_improvement: ''
   });
 
@@ -61,14 +65,16 @@ const GradesPage = () => {
 
   const fetchInitialData = async () => {
     try {
-      const [studentsRes, coursesRes, semestersRes] = await Promise.all([
+      const [studentsRes, coursesRes, semestersRes, classesRes] = await Promise.all([
         getStudents(),
         getCourses(),
-        getSemesters()
+        getSemesters(),
+        getClasses()
       ]);
       setStudents(studentsRes.data?.items || studentsRes.data || []);
       setCourses(coursesRes.data?.items || coursesRes.data || []);
       setSemesters(semestersRes.data?.items || semestersRes.data || []);
+      setClasses(classesRes.data?.items || classesRes.data || []);
 
       // Set default semester to current
       const currentSemester = (semestersRes.data?.items || semestersRes.data || []).find(s => s.is_current);
@@ -219,6 +225,8 @@ const GradesPage = () => {
       semester_id: '',
       student_id: '',
       course_id: '',
+      class_id: '',
+      course_year: '',
       is_improvement: ''
     });
   };
@@ -249,8 +257,10 @@ const GradesPage = () => {
       // Build filters for export (only include non-empty values)
       const exportFilters = {};
       if (filters.semester_id) exportFilters.semester_id = filters.semester_id;
-      if (filters.student_id) exportFilters.student_id = filters.student_id;
-      if (filters.course_id) exportFilters.course_id = filters.course_id;
+      if (filters.student_id)  exportFilters.student_id  = filters.student_id;
+      if (filters.course_id)   exportFilters.course_id   = filters.course_id;
+      if (filters.class_id)    exportFilters.class_id    = filters.class_id;
+      if (filters.course_year) exportFilters.course_year = filters.course_year;
 
       // Call API to get Excel file
       const response = await exportGradesToExcel(exportFilters);
@@ -283,8 +293,10 @@ const GradesPage = () => {
       // Build filters for export (only include non-empty values)
       const exportFilters = {};
       if (filters.semester_id) exportFilters.semester_id = filters.semester_id;
-      if (filters.student_id) exportFilters.student_id = filters.student_id;
-      if (filters.course_id) exportFilters.course_id = filters.course_id;
+      if (filters.student_id)  exportFilters.student_id  = filters.student_id;
+      if (filters.course_id)   exportFilters.course_id   = filters.course_id;
+      if (filters.class_id)    exportFilters.class_id    = filters.class_id;
+      if (filters.course_year) exportFilters.course_year = filters.course_year;
 
       // Call API to get PDF file
       const response = await exportGradesToPDF(exportFilters);
@@ -317,9 +329,10 @@ const GradesPage = () => {
 
       {/* Filter Bar with elegant design */}
       <div className="mb-6 bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/50">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+        {/* Row 1: primary filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
           {/* Semester Filter - Required */}
-          <div className="lg:col-span-1">
+          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Học kỳ <span className="text-red-500">*</span>
             </label>
@@ -338,7 +351,7 @@ const GradesPage = () => {
           </div>
 
           {/* Student Filter */}
-          <div className="lg:col-span-1">
+          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Sinh viên</label>
             <select
               className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
@@ -355,7 +368,7 @@ const GradesPage = () => {
           </div>
 
           {/* Course Filter */}
-          <div className="lg:col-span-1">
+          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Học phần</label>
             <select
               className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
@@ -371,24 +384,67 @@ const GradesPage = () => {
             </select>
           </div>
 
+          {/* Class Filter */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Lớp hành chính</label>
+            <select
+              className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+              value={filters.class_id}
+              onChange={(e) => setFilters({ ...filters, class_id: e.target.value })}
+            >
+              <option value="">Tất cả lớp</option>
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>{cls.class_name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 2: secondary filters + actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {/* Course Year Filter */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Khóa</label>
+            <select
+              className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+              value={filters.course_year}
+              onChange={(e) => setFilters({ ...filters, course_year: e.target.value })}
+            >
+              <option value="">Tất cả các khóa</option>
+                    {[
+                      ...new Set(
+                        students
+                          .map((student) => student.course_year)
+                          .filter(Boolean)
+                      )
+                    ]
+                      .sort((a, b) => b - a)
+                      .map((year) => (
+                        <option key={year} value={year}>
+                          Khóa {year}
+                        </option>
+                      ))}
+            </select>
+          </div>
+
           {/* Is Improvement Filter */}
-          <div className="lg:col-span-1 flex items-end">
-            <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border-2 border-slate-200 cursor-pointer hover:bg-slate-100 transition-all">
+          {/* <div className="flex items-end">
+            <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border-2 border-slate-200 cursor-pointer hover:bg-slate-100 transition-all w-full">
               <input
                 type="checkbox"
                 className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                 checked={filters.is_improvement === '1'}
                 onChange={(e) => setFilters({ ...filters, is_improvement: e.target.checked ? '1' : '' })}
               />
-              <span className="text-sm font-medium text-slate-700">Học cải thiện</span>
+              <span className="text-sm font-medium text-slate-700">Chỉ học cải thiện</span>
             </label>
-          </div>
+          </div> */}
 
-          {/* Action Buttons */}
-          <div className="lg:col-span-1 flex items-end gap-2">
+          {/* Clear filters */}
+          <div className="flex items-end">
             <button
               onClick={clearFilters}
-              className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
+              className="w-full px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
             >
               Xóa bộ lọc
             </button>
@@ -559,7 +615,7 @@ const GradesPage = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
-                        <button
+                        {/* <button
                           onClick={() => handleDelete(grade)}
                           className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           title="Xóa"
@@ -567,7 +623,7 @@ const GradesPage = () => {
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

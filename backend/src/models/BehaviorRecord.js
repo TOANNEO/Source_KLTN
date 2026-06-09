@@ -53,6 +53,16 @@ const BehaviorRecord = sequelize.define('BehaviorRecord', {
     allowNull: true,
     comment: 'Mức độ căng thẳng (1-10)'
   },
+  extracurricular_hours_per_week: {
+    type: DataTypes.DECIMAL(4, 2),
+    defaultValue: 0,
+    comment: 'Số giờ tham gia hoạt động ngoại khóa mỗi tuần'
+  },
+  exercise_hours_per_week: {
+    type: DataTypes.DECIMAL(4, 2),
+    defaultValue: 0,
+    comment: 'Số giờ tập thể dục mỗi tuần'
+  },
   recorded_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

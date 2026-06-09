@@ -25,6 +25,25 @@ const getDashboard = async (req, res) => {
 };
 
 /**
+ * GET /api/v1/admin/dashboard/recent-logins
+ * Get recent login activity list
+ */
+const getRecentLogins = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const logins = await adminService.getRecentLogins(limit);
+    res.json({ success: true, data: logins });
+  } catch (error) {
+    console.error('Error in getRecentLogins:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Lỗi khi lấy lịch sử đăng nhập'
+    });
+  }
+};
+
+/**
  * GET /api/v1/admin/users
  * Get all users with filters and pagination
  */
@@ -161,6 +180,7 @@ const deleteUser = async (req, res) => {
 
 module.exports = {
   getDashboard,
+  getRecentLogins,
   getUsers,
   createUser,
   updateUser,

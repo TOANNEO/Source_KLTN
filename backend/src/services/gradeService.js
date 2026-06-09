@@ -1,10 +1,10 @@
-const { Grade, Student, Course, Semester, User, GradeAuditLog } = require('../models');
+const { Grade, Student, Course, Semester, User, GradeAuditLog, Class } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 /**
  * Calculate total score according to TLU formula
- * UC09: total = 0.3 * GK + 0.7 * CK
+ *  total = 0.3 * GK + 0.7 * CK
  */
 const calculateTotalScore = (middleExamScore, finalScore) => {
   if (middleExamScore === null || finalScore === null) {
@@ -92,6 +92,7 @@ const updateStudentGPA = async (studentId) => {
  */
 const getAllGrades = async (filters = {}) => {
   const where = {};
+  const studentWhere = {};
 
   if (filters.student_id) {
     where.student_id = filters.student_id;
@@ -109,17 +110,33 @@ const getAllGrades = async (filters = {}) => {
     where.is_improvement = filters.is_improvement;
   }
 
+    // Student filters
+  if (filters.class_id) {
+    studentWhere.class_id = filters.class_id;
+  }
+
+  if (filters.course_year) {
+    studentWhere.course_year = filters.course_year;
+  }
+  
+
   return await Grade.findAll({
     where,
     include: [
       {
         model: Student,
         as: 'student',
+        where: studentWhere,
+        required: Object.keys(studentWhere).length > 0, // Only inner join if there are student filters
         include: [
           {
             model: User,
             as: 'user',
             attributes: ['first_name', 'last_name']
+          },
+          {
+            model: Class,
+            as: 'class'
           }
         ]
       },
@@ -173,7 +190,7 @@ const getGradeById = async (id) => {
 
 /**
  * Create new grade
- * UC09: Nhập điểm học phần - tự tính total_score
+ *  Nhập điểm học phần - tự tính total_score
  */
 const createGrade = async (data) => {
   const {
@@ -244,7 +261,7 @@ const createGrade = async (data) => {
 
 /**
  * Update grade
- * UC10: Cập nhật bảng điểm - ghi audit log, tính lại GPA
+ *  Cập nhật bảng điểm - ghi audit log, tính lại GPA
  */
 const updateGrade = async (id, data, updatedBy) => {
   const grade = await Grade.findByPk(id);
@@ -260,7 +277,7 @@ const updateGrade = async (id, data, updatedBy) => {
     updated_reason
   } = data;
 
-  // UC10: Phải nhập lý do khi sửa
+  //  Phải nhập lý do khi sửa
   if (!updated_reason || updated_reason.trim() === '') {
     throw new Error('Vui lòng nhập lý do chỉnh sửa điểm');
   }
